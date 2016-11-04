@@ -1,0 +1,17 @@
+{
+	"name"								: "tagahead"
+	, "version"							: "0.0.1"
+	, "authors"							: [ {
+		"name"							: "Felix Steiner"
+		, "email"						: "felix@joinbox.com"
+		} ]
+	, "ignore"							: [
+		  "**/.*"
+		, "node_modules"
+		, "bower_components"
+	],
+	"dependencies"						: {
+		"web-component-tester"			: "latest"
+		, "webcomponentsjs"				: "latest"
+	}
+}

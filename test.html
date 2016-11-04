@@ -1,0 +1,81 @@
+<script src="src/typeahead-input/typeahead-input.js"></script>
+
+<typeahead-input></typeahead-input>
+
+
+<script>
+
+	/**
+	*
+	*/
+	class SelectableElement extends HTMLElement {
+
+		constructor() {
+
+			super();
+
+			this.addEventListener('click', (ev) => {
+				console.error('click');
+			});
+
+		}
+
+		set selected(selected) {
+			this._selected = !!selected;
+		}
+
+		get selected() {
+			return this._selected;
+		}
+
+		connectedCallback() {
+		}
+
+	}
+
+	window.customElements.define('selectable-list-item', SelectableElement);
+
+</script>
+
+<script>
+
+	/**
+	*
+	*/
+	class SelectableList extends HTMLElement {
+
+		constructor() {
+			super();
+		}
+
+		selectNext() {
+			if (this._currentlySelectedItemIndex === undefined) this._currentlySelectedItemIndex = 0;
+			else this._currentlySelectedItemIndex++;
+		}
+
+		selectPrevious() {
+			if (this._currentlySelectedItemIndex === undefined) this._currentlySelectedItemIndex = 0;
+			else this._currentlySelectedItemIndex++;
+		}
+
+		_getChildElementCount() {
+			return this.childNodes.length;
+		}
+
+		resetSelection() {
+			this._currentlySelectedItemIndex = undefined;
+		}
+
+	}
+
+	window.customElements.define('selectable-list', SelectableList);
+
+</script>
+
+
+
+
+
+<selectable-list>
+	<selectable-list-item style="background-color:red;height:50px;width:50px">h</selectable-list-item>
+</selectable-list>

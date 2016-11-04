@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+	<script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+	<script src="../../bower_components/web-component-tester/browser.js"></script>
+		
+	<!-- Dependencies -->
+	<!--<script src="../../dist/typeahead-input/typeahead-input.js"></script>
+	<script src="../../dist/typeahead-results/typeahead-results.js"></script>-->
+	
+	<!-- Typeahead -->
+	<link rel="import" href="../../dist/typeahead/typeahead.html">
+</head>
+<body>
+
+<test-fixture id="regular-input">
+	<template>
+		<typeahead-component>
+			<template id="result-template">Data</template>
+			<template id="empty-result-set-template">Empty</template>
+			<template id="error-template">Error</template>
+		</typeahead-component>
+	</template>
+</test-fixture>
+
+<script>
+
+/* global document, suite, test, customElements, assert, sinon, window, TypeaheadComponent, setup, fixture */
+
+function dispatchEvent(element, type, mainData = {}) {
+	const evt = document.createEvent( 'CustomEvent' );
+	evt.initEvent( type, true, true);
+	Object.keys(mainData).forEach((key) => {
+		evt[key] = mainData[key];
+	});
+	element.dispatchEvent(evt);
+}
+
+
+suite('typeahead', () => {
+
+	let typeahead;
+	setup(() => {
+		typeahead = fixture('regular-input');
+	});
+
+
+	test('is available in JS and HTML', () => {
+		assert.notEqual(window.TypeaheadComponent, undefined);
+		assert.notEqual(customElements.get('typeahead-component'), undefined);
+	});
+
+
+	test('throws error if dataProvider is missing', () => {
+
+		/*let input;
+		typeahead = new TypeaheadComponent();
+		document.body.appendChild(typeahead);
+		input = typeahead.querySelector('input');
+		input.value = 'test';
+		//dispatchEvent(input, 'input');
+		assert.ok(true);
+		document.body.removeChild(typeahead);*/
+
+	});
+
+
+
+	test('requests data if dataProvider is set', (done) => {
+
+		function search(term) {
+			return new Promise((resolve) => {
+				resolve([{ name: 'a-' + term }]);
+			});
+		}
+		const spy = sinon.spy(search);
+		typeahead.dataProvider = spy;
+
+		const input = typeahead.querySelector('input');
+		input.value = 'test';
+		dispatchEvent(input, 'input');
+
+		setTimeout(() => {
+			assert.equal(spy.calledOnce, true);
+			assert.equal(spy.calledWith('test'), true);
+			done();
+		}, 200);
+
+	});
+
+});
+
+
+
+
+suite('dom', () => {
+
+
+	let typeahead;
+	setup(() => {
+		typeahead = fixture('regular-input');
+	});
+
+
+
+	test('sets up dom', () => {
+
+		assert.equal(typeahead.querySelectorAll('typeahead-results').length, 1);
+		assert.equal(typeahead.querySelectorAll('typeahead-input').length, 1);
+
+	});
+
+
+	// Not necessary as typeahead-results would throw an error if template was missing
+	test('copies innerHTML to result list', () => {
+	});
+
+
+});
+
+
+
+
+suite('visibility', () => {
+
+	let typeahead;
+	setup(() => {
+		typeahead = fixture('regular-input');
+	});
+
+	test('is hidden by default', () => {
+		console.warn(typeahead.querySelector('typeahead-results'));
+		assert.equal(typeahead.querySelector('typeahead-results').hasAttribute('hidden'), true);
+	});
+
+	test('hides on blur', (done) => {
+		
+		// Show first
+		dispatchEvent(typeahead.querySelector('input'), 'focus');
+		// Then blur
+		setTimeout(() => {
+			dispatchEvent(typeahead.querySelector('input'), 'blur');
+			setTimeout(() => {
+				assert.equal(typeahead.querySelector('typeahead-results').hasAttribute('hidden'), true);
+				done();
+			}, 20);
+		}, 10);
+
+	});
+
+	test('shows on focus', () => {
+		dispatchEvent(typeahead.querySelector('input'), 'focus');
+		assert.equal(typeahead.querySelector('typeahead-results').hasAttribute('hidden'), false);
+	});
+
+});
+
+</script>
+</body>
+</html>

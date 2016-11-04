@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+	<script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+	<link rel="import" href="../../dist/typeahead/typeahead.html">
+
+	<style>
+
+		.typeahead-results-list {
+			background-color: tomato;
+		}
+
+	</style>
+
+</head>
+
+<body>
+
+	<typeahead-component>
+		<template id="result-template">[[name]]</template>
+		<template id="empty-result-set-template">Empty</template>
+		<template id="error-template">Error: [[message]]</template>		
+	</typeahead-component>
+
+	<script>
+
+	/* global document */
+	document.querySelector('typeahead-component').dataProvider = (query) => {
+		
+		return new Promise((resolve, reject) => {
+
+			if (Math.random() < 0.1 ) return reject(new Error('some error'));
+
+			if (!query) return resolve([]);
+			return resolve([{ name: query + '-1' }, { name: query + '-2' }]);
+
+		});
+	};
+	</script>
+
+</body>
+</html>

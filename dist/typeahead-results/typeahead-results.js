@@ -1,0 +1,261 @@
+/**
+* «XPath» for objects. Takes an object/array and a path, returns value that the object
+* has at path. 
+* @param {Object} data
+* @param {String} path			Dot separated path that points to a value of the data
+*								passed in, e.g. city.0.name (gets city's first array item
+*								and returns its name property)
+*/
+function extractData(data, path) {
+
+	const pathElements		= path.split('.')
+		, property			= pathElements[0]
+		, left 				= pathElements.slice(1).join('.');
+
+	// Array
+	if (Array.isArray(data)) {
+
+		const index = new Number(property);
+
+		// Property is not a number
+		if(isNaN(index)) throw new Error(`ExtractData: When data is an array, property must be some kind of a number, but is ${ property }.` );
+		// Property is < 0
+		if(index < 0) throw new Error(`ExtractData: Index for an array must be greater than 0, is ${ property }`);
+
+		// Path left: Call myself recursively
+		if (left) return extractData(data[property], left);
+		// Return final value
+		else return data[property];
+
+	} 
+
+	// Object
+	else if (typeof data === 'object' && data !== null){
+
+		if(left) return extractData(data[property], left);
+		else return data[property];
+
+	}
+
+	// Someting else (e.g. Number, undefined, null…)
+	else {
+		return;
+	}
+
+}
+
+/**
+* A very primitive function which renders a template – just pass in a template and 
+* some data – and you're done. Uses extract-data to get data properties.
+* Template is like: '<li>[[city.0.zip]]<br/>[[city.0.name]]</li>'
+* 
+*/
+function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
+
+	// Template must have the same amount of opening and closing tags
+	if (template.split(openingTag).length !== template.split(closingTag).length) throw new Error('RenderTemplate: Template must have the same amount of opening and closing tags');
+	
+	const rendered = [];
+	template.split(openingTag).forEach((tag, index) => {
+
+		// First and last split do not never contain a tag
+		if (!index) {
+			rendered.push(tag);
+			return;
+		}
+
+		// Get content of tag
+		const split = tag.split(closingTag);
+
+		// Tag not closed
+		if (split.length !== 2) throw new Error('RenderTemplate: Tag is not closed before new tag begins');
+
+		// Get value, put things together
+		const value = extractData(data, split[0].trim());
+		rendered.push(value === undefined ? '' : value); // Don't ever push undefined; will be converted to «undefined»
+		rendered.push(split[1]);
+
+	});
+
+	return rendered.join('');
+
+}
+
+(() => {
+
+	/* global window, HTMLElement, document */
+
+	/**
+	* Displays a list with entries which may be set through setData. If an entry is selected,
+	* an 'item-selected' event will be fired.
+	*/
+	class TypeaheadResults extends HTMLElement {
+
+
+		/**
+		* The element's only public method: Accepts data and renders it.
+		* @param {Array|Error} data		Array with results (objects) or an empty array.
+		*								Error if retrieving data led to an error.
+		*/
+		setData(data) {
+			
+			console.log('TypeaheadResults: data updated to %o', data);
+			this._data = data;
+			this._renderTemplates(data);
+
+		}
+
+
+
+		/**
+		* Handles any data update and calls corresponding rendering function or throws an
+		* error if data is not valid.
+		*
+		* Modifies innerHTML of element
+		* @param {Array|Error data} data	See this.setData
+		*/
+		_renderTemplates(data) {
+
+			let inner;
+
+			// Error
+			if (data instanceof Error) inner = this._renderError(data);
+			// Array with values
+			else if (Array.isArray(data) && data.length) inner = this._renderData(data);
+			// Empty array
+			else if (Array.isArray(data) && !data.length) inner = this._renderEmptyData();
+			// Invalid argument
+			else throw new Error(`TypeaheadResult: Data is not an array nor an error, cannot be handled.`);
+
+			this.innerHTML = inner;
+
+		}
+
+
+		/**
+		* Returns classes that will be added to rendered <ul>
+		* @return {String}
+		*/
+		_getListClass(empty, error) {
+			return `typeahead-results-list ${ empty ? '-empty' : '' } ${ error? '-error' : '' }`.trim().replace(/\s+/g, ' ');
+		}
+
+		/**
+		* Returns classes that will be added to rendered <li>s
+		* @return {String}
+		*/
+		_getListElementClass(empty, error) {
+			return `typeahead-results-list-item ${ empty ? '-empty' : '' } ${ error? '-error' : '' }`.trim().replace(/\s+/g, ' ');
+		}
+
+
+		/**
+		* Empties current element
+		*/
+		_emptyElement() {
+			while(this.childNodes.length) this.removeChild(this.childNodes[0]);
+		}
+
+
+		/**
+		* Returns a rendered an array of data. 
+		* @returns {String}
+		*/
+		_renderData(data) {
+
+			const renderedItems = [];
+			data.forEach((item) => {
+				renderedItems.push(renderTemplate(this._resultTemplate, item));
+			});
+			// Wrap in li
+			const wrappedRenderedItems = renderedItems.map((item) => {
+				return `<li class="${ this._getListElementClass() }">${ item }</li>`;
+			});
+			// Remove spaces for easier testing
+			return `
+				<selectable-list>
+					<ul class="${ this._getListClass() }">
+						${ wrappedRenderedItems.join('') }
+					</ul>
+				</selectable-list>`.replace(/(\t|\n)*/g, '');
+
+		}
+
+
+		/**
+		* Renders a rendered empty data set («No results found»). 
+		* @returns {String}
+		*/
+		_renderEmptyData() {
+			// Remove spaces for easier testing
+			return `
+				<ul class="${ this._getListClass(true) }">
+					<li class="${ this._getListElementClass(true) }">
+						${ this._noResultsTemplate }
+					</li>
+				</ul>`.replace(/(\t|\n)*/g, '');
+		}
+
+
+		/**
+		* Renders a rendered error.
+		* @returns {String}
+		*/
+		_renderError(error) {
+			const content = renderTemplate(this._errorTemplate || '[[message]]', error);
+			// Remove spaces for easier testing
+			return `
+				<ul class="${ this._getListClass(false, true) }">
+					<li class="${ this._getListElementClass(false, true) }">
+						${ content }
+					</li>
+				</ul>`.replace(/(\t|\n)*/g, '');
+		}
+
+
+		/**
+		* Attached to DOM: Get templates, store them in properties and empty element in order
+		* to be ready to render the list whenever data gets in.
+		*/
+		connectedCallback() {
+
+			// When component is attached to dom, read its children and 
+			// store templates as properties.
+			const resultTemplate		= this.querySelector('#result-template');
+			const noResultsTemplate		= this.querySelector('#empty-result-set-template');
+			const errorTemplate			= this.querySelector('#error-template');
+
+			// Templates missing
+			if (!resultTemplate || !noResultsTemplate ) throw new Error(`TypeaheadResults: Templates for results or empty result set missing.`);
+			if (!errorTemplate) console.warn(`TypeaheadResults: Template for errors missing.`);
+
+			this._resultTemplate 		= this._getTemplateContentAsHTML(resultTemplate);
+			this._noResultsTemplate 	= this._getTemplateContentAsHTML(noResultsTemplate);
+			if(errorTemplate) this._errorTemplate = this._getTemplateContentAsHTML(errorTemplate);
+
+			// Empty element
+			this._emptyElement();
+
+		}
+
+
+		/**
+		* <template> tag has a special behavior (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template), 
+		* innerHTML cannot be called on it directly. Therefore, we have to create a <div>, append the template's content
+		* and take the div's innerHTML
+		*/
+		_getTemplateContentAsHTML(template) {
+			const div = document.createElement('div');
+			div.appendChild(template.content);
+			return div.innerHTML;
+		}
+
+	}
+
+
+	window.customElements.define('typeahead-results', TypeaheadResults);
+	// Make class public for JS instantiation
+	window.TypeaheadResults = TypeaheadResults;
+
+
+})();

@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+	<script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+	<script src="../../bower_components/web-component-tester/browser.js"></script>
+	<link rel="import" href="../../dist/typeahead-input/typeahead-input.html">
+</head>
+<body>
+
+<test-fixture id="regular-input">
+	<template>
+		<typeahead-input id="input"></typeahead-input>
+	</template>
+</test-fixture>
+
+<script>
+
+/* global document, window, customElements, suite, test, assert, setup, fixture */
+
+function dispatchEvent(element, type, mainData = {}) {
+	const evt = document.createEvent( 'CustomEvent' );
+	evt.initEvent( type, true, true);
+	Object.keys(mainData).forEach((key) => {
+		evt[key] = mainData[key];
+	});
+	element.dispatchEvent(evt);
+}
+
+
+suite('typeahead', () => {
+
+	let typeahead;
+	setup(() => {
+		typeahead = fixture('regular-input');
+	});
+
+
+
+	test('is available in JS and HTML', () => {
+		assert.notEqual(window.TypeaheadInput, undefined);
+		assert.notEqual(customElements.get('typeahead-input'), undefined);
+	});
+
+
+
+	test('fires value-change after debounce if value changed', (done) => {
+
+		const events = [];
+		typeahead.addEventListener('value-change', (ev) => { events.push(ev); });
+
+		const input = typeahead.querySelector('input');
+		input.value = 'test';
+		dispatchEvent(input, 'input');
+
+		// Make sure input waits for debounce
+		setTimeout(() => {
+			assert.equal(events.length, 0);
+		}, 0);
+
+		setTimeout(() => {
+			assert.equal(events.length, 1);
+			done();
+		}, 200);
+
+	});
+
+
+
+
+
+	test('doesn\'t fire value-change if value did not change', (done) => {
+
+		const events = [];
+		typeahead.addEventListener('value-change', (ev) => { events.push(ev); });
+
+		const input = typeahead.querySelector('input');
+		input.value = 'test';
+		dispatchEvent(input, 'input');
+
+		setTimeout(() => { input.value = ''; }, 20);
+
+		setTimeout(() => {
+			assert.equal(events.length, 0);
+			done();
+		}, 200);
+
+	});
+
+
+
+
+	test('handles keyboard inputs', (done) => {
+
+		const fired = {};
+
+		const events = ['navigate-up', 'navigate-down', 'confirm-selection', 'focus-input', 'blur-input'];
+		events.forEach((event) => {
+			typeahead.addEventListener(event, () => { 
+				fired[event] = fired[event] ? fired[event] + 1 : 1; 
+			});
+		});
+
+		const input = typeahead.querySelector('input');
+		dispatchEvent(input, 'keydown', { key: 'ArrowDown' });
+		dispatchEvent(input, 'keydown', { key: 'Enter' });
+		dispatchEvent(input, 'keydown', { key: 'ArrowUp' });
+		dispatchEvent(input, 'focus');
+		dispatchEvent(input, 'blur');
+
+		setTimeout(() => {
+			events.forEach((type) => {
+				assert.equal(fired[type], 1);
+			});
+			done();
+		}, 30);
+
+	});
+
+
+
+	test('grows automatically', (done) => {
+		const input = typeahead.querySelector('input')
+			, initialWidth = input.offsetWidth;
+
+		input.value = 'test';
+		dispatchEvent(input, 'keyup');
+
+		// Grow
+		setTimeout(() => {
+			assert.equal(input.offsetWidth > initialWidth, true );
+			input.value = '';
+			dispatchEvent(input, 'keyup');
+
+			// Shrink
+			setTimeout(() => {
+				// Don't go below 1
+				assert.equal(input.offsetWidth === initialWidth, true);
+				done();
+			}, 10);
+		}, 10);
+
+	});
+
+
+
+
+});
+
+</script>
+
+</body>
+</html>

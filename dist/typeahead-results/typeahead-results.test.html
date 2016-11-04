@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+	<script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+	<script src="../../bower_components/web-component-tester/browser.js"></script>
+	<link rel="import" href="../../dist/typeahead-results/typeahead-results.html">
+</head>
+<body>
+
+<test-fixture id="regular-results">
+	<template>
+		<typeahead-results>
+			<template id="result-template"><li>Name: [[name]]</li></template>
+			<template id="error-template">Error: [[message]]</template>
+			<template id="empty-result-set-template">Empty.</template>
+		</typeahead-input>
+	</template>
+</test-fixture>
+
+<test-fixture id="without-error">
+	<template>
+		<typeahead-results>
+			<template id="result-template"></template>
+			<template id="empty-result-set-template"></template>
+		</typeahead-input>
+	</template>
+</test-fixture>
+
+<script>
+
+/* global document, window, customElements, suite, test, assert, setup, fixture */
+
+function dispatchEvent(element, type, mainData = {}) {
+	const evt = document.createEvent( 'CustomEvent' );
+	evt.initEvent( type, true, true);
+	Object.keys(mainData).forEach((key) => {
+		evt[key] = mainData[key];
+	});
+	element.dispatchEvent(evt);
+}
+
+
+suite('rendering', () => {
+
+	let results;
+	setup(() => {
+		results = fixture('regular-results');
+	});
+
+	const dataHTML = '<selectable-list><ul class="typeahead-results-list"><li class="typeahead-results-list-item"></li><li>Name: a</li><li class="typeahead-results-list-item"></li><li>Name: b</li></ul></selectable-list>'
+		, emptyHTML = '<ul class="typeahead-results-list -empty"><li class="typeahead-results-list-item -empty">Empty.</li></ul>'
+		, errorHTML = '<ul class="typeahead-results-list -error"><li class="typeahead-results-list-item -error">Error: Something bad happened.</li></ul>';
+
+
+	test('is available in JS and HTML', () => {
+		assert.notEqual(window.TypeaheadResults, undefined);
+		assert.notEqual(customElements.get('typeahead-results'), undefined);
+	});
+
+
+	test('renders data when it is set', () => {
+		const data = [{ name: 'a' }, { name: 'b' }];
+		results.setData(data);
+		assert.equal(results.innerHTML, dataHTML);
+	});
+
+	test('renders empty data when it it set', () => {
+		results.setData([]);
+		assert.equal(results.innerHTML, emptyHTML);
+	});
+
+	test('renders errors', () => {
+		results.setData(new Error('Something bad happened.'));
+		assert.equal(results.innerHTML, errorHTML);
+	});
+
+	test('re-renders data when it is updated', () => {
+		// Empty
+		results.setData([]);
+		assert.equal(results.innerHTML, emptyHTML);
+		// Data
+		const data = [{ name: 'a' }, { name: 'b' }];
+		results.setData(data);
+		assert.equal(results.innerHTML, dataHTML);
+		// ... and Error
+		results.setData(new Error('Something bad happened.'));
+		assert.equal(results.innerHTML, errorHTML);
+	});
+
+});
+
+
+suite('errors', () => {
+
+	let results;
+	setup(() => {
+		results = fixture('without-error');
+	});
+
+	test('renders errors even if no template is set', () => {
+		results.setData(new Error('Something bad happened.'));
+		assert.equal(results.innerHTML, '<ul class="typeahead-results-list -error"><li class="typeahead-results-list-item -error">Something bad happened.</li></ul>');
+	});
+
+});
+
+
+</script>
+
+</body>
+</html>
