@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+	<script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+	<script src="../../bower_components/web-component-tester/browser.js"></script>
+	<link rel="import" href="../../dist/selectable-list-item/selectable-list-item.html">
+</head>
+<body>
+
+<test-fixture id="regular-list-item">
+	<template>
+		<div>
+			<selectable-list-item>test</selectable-list-item>
+		</div>
+	</template>
+</test-fixture>
+
+<script>
+
+/* global document, suite, test, customElements, assert, sinon, window, TypeaheadComponent, setup, fixture */
+
+function dispatchEvent(element, type, mainData = {}) {
+	const evt = document.createEvent( 'CustomEvent' );
+	evt.initEvent( type, true, true);
+	Object.keys(mainData).forEach((key) => {
+		evt[key] = mainData[key];
+	});
+	element.dispatchEvent(evt);
+}
+
+
+suite('selectable-list-item', () => {
+
+	let list;
+	setup(() => {
+		list = fixture('regular-list-item');
+	});
+
+
+	test('is available in JS and HTML', () => {
+		assert.notEqual(window.SelectableListItem, undefined);
+		assert.notEqual(customElements.get('selectable-list-item'), undefined);
+	});
+
+
+	test('has public select method', () => {
+		const item = document.createElement('selectable-list-item');
+		assert.equal(typeof item.select, 'function');
+	});
+
+
+	test('mousedown emits select-item event', (done) => {
+
+		const events = [];
+		list.addEventListener('select-item', (ev) => {
+			events.push(ev);
+		});
+		dispatchEvent(list.querySelector('selectable-list-item'), 'mousedown');
+
+		setTimeout(() => {
+			assert.equal(events.length, 1);
+			assert.equal(events[0].bubbles, true);
+			done();
+		}, 30);
+
+	});
+
+
+
+	test('select() emits select-item event', (done) => {
+
+		const events = [];
+		list.addEventListener('select-item', (ev) => {
+			events.push(ev);
+		});
+
+		list.querySelector('selectable-list-item').select();
+
+		setTimeout(() => {
+			assert.equal(events.length, 1);
+			assert.equal(events[0].bubbles, true);
+			done();
+		}, 30);
+
+	});
+
+
+
+/*	test('fires event with selec-item event with correct detail data', () => {
+
+		const selectableListItem = list.querySelector('selectable-list-item');
+		const data = { name: 'test' };
+		selectableListItem.data = data;
+
+		let event;
+		list.addEventListener('select-item', (ev) => {
+			event = ev;
+		});
+
+		selectableListItem.select();
+
+		//assert.equal(Object.keys(event.detail).length, 2);
+		//assert.equal(event.detail.text, 'test');
+		// Check for same instance
+		assert.equal(event.detail.data, data);
+
+
+	});*/
+
+
+
+	test('fires select-item event if selected', (done) => {
+
+
+		const events = [];
+		list.addEventListener('select-item', (ev) => {
+			events.push(ev);
+		});
+		const el = list.querySelector('selectable-list-item');
+		el.select();
+		setTimeout(() => {
+			assert.equal(events.length, 1);
+			done();
+		}, 20);
+
+
+	});
+
+
+	test('highlights and downplays correctly', () => {
+
+		const el = list.querySelector('selectable-list-item');
+		el.highlight();
+		assert.equal(el.classList.contains('highlight'), true);
+		el.downplay();
+		assert.equal(el.classList.contains('highlight'), false);
+
+	});
+
+
+
+
+});
+
+</script>
+</body>
+</html>

@@ -83,13 +83,93 @@ function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
 
 (() => {
 
-	/* global window, HTMLElement, document */
+	/* global window, HTMLElement, document, CustomEvent */
 
 	/**
 	* Displays a list with entries which may be set through setData. If an entry is selected,
 	* an 'item-selected' event will be fired.
 	*/
 	class TypeaheadResults extends HTMLElement {
+
+
+
+
+
+		/**
+		* Attached to DOM: Get templates, store them in properties and empty element in order
+		* to be ready to render the list whenever data gets in.
+		*/
+		connectedCallback() {
+
+			// When component is attached to dom, read its children and 
+			// store templates as properties.
+			const resultTemplate		= this.querySelector('#result-template');
+			const noResultsTemplate		= this.querySelector('#empty-result-set-template');
+			const errorTemplate			= this.querySelector('#error-template');
+
+			// Templates missing
+			if (!resultTemplate || !noResultsTemplate ) throw new Error(`TypeaheadResults: Templates for results or empty result set missing.`);
+			if (!errorTemplate) console.warn(`TypeaheadResults: Template for errors missing.`);
+
+			this._resultTemplate 						= this._getTemplateContentAsHTML(resultTemplate);
+			this._noResultsTemplate 					= this._getTemplateContentAsHTML(noResultsTemplate);
+			if(errorTemplate) this._errorTemplate 		= this._getTemplateContentAsHTML(errorTemplate);
+
+			// Empty element
+			this._emptyElement();
+
+			this._addSelectItemEventListener();
+
+		}
+
+
+
+		/**
+		* <selectable-list-item> fires select-item event. Catch it here, stop propagation and add data and
+		* text properties. Why here? Because data is also set in this class, and selectable-list-item is not
+		* aware of it.
+		*/
+		_addSelectItemEventListener() {
+			this.addEventListener('select-item', (ev) => {
+
+				// If it's the select-item event dispatched by this element (<typeahead-results>), 
+				// just return or we'll have an infinite loop.
+				if (ev.target === this) return;
+
+				ev.stopPropagation();
+				ev.preventDefault();
+
+				const eventData = {
+					bubbles			: true
+					, detail		: {
+						data			: ev.target.data
+						, text			: ev.target.textContent
+					}
+				};
+
+				this.dispatchEvent(new CustomEvent('select-item', eventData));
+
+			});
+		}
+
+
+		/**
+		* Public method to store input that needs to be added to <selectable-list> (to control ith through
+		* keyboard input)
+		*/
+		setInput(inputElement) {
+			this._inputElement = inputElement;
+			//console.error(inputElement);
+		}
+
+		/**
+		* Returns element set through this.setInput
+		*/
+		getInput() {
+			return this._inputElement;
+		}
+
+
 
 
 		/**
@@ -116,18 +196,26 @@ function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
 		*/
 		_renderTemplates(data) {
 
-			let inner;
-
 			// Error
-			if (data instanceof Error) inner = this._renderError(data);
-			// Array with values
-			else if (Array.isArray(data) && data.length) inner = this._renderData(data);
-			// Empty array
-			else if (Array.isArray(data) && !data.length) inner = this._renderEmptyData();
-			// Invalid argument
-			else throw new Error(`TypeaheadResult: Data is not an array nor an error, cannot be handled.`);
+			if (data instanceof Error) {
+				this.innerHTML = this._renderError(data);
+			}
 
-			this.innerHTML = inner;
+			// Array with values
+			else if (Array.isArray(data) && data.length) {
+				this.innerHTML = '';
+				this.appendChild(this._renderData(data));
+			}
+
+			// Empty array
+			else if (Array.isArray(data) && !data.length) {
+				this.innerHTML = this._renderEmptyData();
+			}
+
+			// Invalid argument
+			else {
+				throw new Error(`TypeaheadResult: Data is not an array nor an error, cannot be handled.`);
+			}
 
 		}
 
@@ -137,7 +225,7 @@ function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
 		* @return {String}
 		*/
 		_getListClass(empty, error) {
-			return `typeahead-results-list ${ empty ? '-empty' : '' } ${ error? '-error' : '' }`.trim().replace(/\s+/g, ' ');
+			return `typeahead-results-list ${ empty ? 'empty' : '' } ${ error? 'error' : '' }`.trim().replace(/\s+/g, ' ');
 		}
 
 		/**
@@ -145,7 +233,7 @@ function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
 		* @return {String}
 		*/
 		_getListElementClass(empty, error) {
-			return `typeahead-results-list-item ${ empty ? '-empty' : '' } ${ error? '-error' : '' }`.trim().replace(/\s+/g, ' ');
+			return `typeahead-results-list-item ${ empty ? 'empty' : '' } ${ error? 'error' : '' }`.trim().replace(/\s+/g, ' ');
 		}
 
 
@@ -157,29 +245,54 @@ function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
 		}
 
 
+
+
+
 		/**
-		* Returns a rendered an array of data. 
-		* @returns {String}
+		* Renders data for a result list. 
+		* @returns HTMLElement (<selectable-list>)
 		*/
 		_renderData(data) {
 
 			const renderedItems = [];
+
+			// Create list items
 			data.forEach((item) => {
-				renderedItems.push(renderTemplate(this._resultTemplate, item));
+
+				// Content of list element
+				const renderedInnerContent = renderTemplate(this._resultTemplate, item)
+				// List element
+					, renderedOuterContent = document.createElement('selectable-list-item');
+
+				// Add class and content to list element
+				renderedOuterContent.classList.add(this._getListElementClass());
+				renderedOuterContent.innerHTML = renderedInnerContent;
+				// Store data as property on the element
+				renderedOuterContent.data = item;
+
+				// Push list element to renderedItems
+				renderedItems.push(renderedOuterContent);
 			});
-			// Wrap in li
-			const wrappedRenderedItems = renderedItems.map((item) => {
-				return `<li class="${ this._getListElementClass() }">${ item }</li>`;
+
+			console.log('TypeaheadResult: Results are %o', renderedItems.map(item => item.outerHTML));
+
+			// Create list, add list items
+			const list = document.createElement('selectable-list');
+			list.classList.add(this._getListClass());
+			// Add input to list (for keyboard navigation)
+			if (this._inputElement) list.addInput(this._inputElement);
+
+			// Add list items to list
+			renderedItems.forEach((item) => {
+				list.appendChild(item);
 			});
-			// Remove spaces for easier testing
-			return `
-				<selectable-list>
-					<ul class="${ this._getListClass() }">
-						${ wrappedRenderedItems.join('') }
-					</ul>
-				</selectable-list>`.replace(/(\t|\n)*/g, '');
+
+			return list;
 
 		}
+
+
+
 
 
 		/**
@@ -193,8 +306,11 @@ function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
 					<li class="${ this._getListElementClass(true) }">
 						${ this._noResultsTemplate }
 					</li>
-				</ul>`.replace(/(\t|\n)*/g, '');
+				</ul>
+				`.replace(/(\t|\n)*/g, '');
 		}
+
+
 
 
 		/**
@@ -209,34 +325,10 @@ function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
 					<li class="${ this._getListElementClass(false, true) }">
 						${ content }
 					</li>
-				</ul>`.replace(/(\t|\n)*/g, '');
+				</ul>
+				`.replace(/(\t|\n)*/g, '');
 		}
 
-
-		/**
-		* Attached to DOM: Get templates, store them in properties and empty element in order
-		* to be ready to render the list whenever data gets in.
-		*/
-		connectedCallback() {
-
-			// When component is attached to dom, read its children and 
-			// store templates as properties.
-			const resultTemplate		= this.querySelector('#result-template');
-			const noResultsTemplate		= this.querySelector('#empty-result-set-template');
-			const errorTemplate			= this.querySelector('#error-template');
-
-			// Templates missing
-			if (!resultTemplate || !noResultsTemplate ) throw new Error(`TypeaheadResults: Templates for results or empty result set missing.`);
-			if (!errorTemplate) console.warn(`TypeaheadResults: Template for errors missing.`);
-
-			this._resultTemplate 		= this._getTemplateContentAsHTML(resultTemplate);
-			this._noResultsTemplate 	= this._getTemplateContentAsHTML(noResultsTemplate);
-			if(errorTemplate) this._errorTemplate = this._getTemplateContentAsHTML(errorTemplate);
-
-			// Empty element
-			this._emptyElement();
-
-		}
 
 
 		/**
@@ -251,6 +343,7 @@ function renderTemplate(template, data, openingTag = '[[', closingTag = ']]') {
 		}
 
 	}
+
 
 
 	window.customElements.define('typeahead-results', TypeaheadResults);

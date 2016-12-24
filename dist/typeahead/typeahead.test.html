@@ -25,7 +25,7 @@
 
 <script>
 
-/* global document, suite, test, customElements, assert, sinon, window, TypeaheadComponent, setup, fixture */
+/* global document, suite, test, customElements, assert, sinon, window, TypeaheadComponent, HTMLElement, setup, fixture */
 
 function dispatchEvent(element, type, mainData = {}) {
 	const evt = document.createEvent( 'CustomEvent' );
@@ -113,6 +113,13 @@ suite('dom', () => {
 
 	// Not necessary as typeahead-results would throw an error if template was missing
 	test('copies innerHTML to result list', () => {
+	});
+
+
+
+	test('sets input on typeahead-results', () => {
+		const list = typeahead.querySelector('typeahead-results');
+		assert.equal(list.getInput() instanceof HTMLElement, true);
 	});
 
 

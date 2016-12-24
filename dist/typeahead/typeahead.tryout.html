@@ -10,6 +10,10 @@
 			background-color: tomato;
 		}
 
+		selectable-list-item.highlight {
+			background-color: green;
+		}
+
 	</style>
 
 </head>
@@ -24,18 +28,25 @@
 
 	<script>
 
-	/* global document */
-	document.querySelector('typeahead-component').dataProvider = (query) => {
-		
-		return new Promise((resolve, reject) => {
+		/* global document */
+		document.querySelector('typeahead-component').dataProvider = (query) => {
+			
+			return new Promise((resolve, reject) => {
 
-			if (Math.random() < 0.1 ) return reject(new Error('some error'));
+				if (Math.random() < 0.1 ) return reject(new Error('some error'));
 
-			if (!query) return resolve([]);
-			return resolve([{ name: query + '-1' }, { name: query + '-2' }]);
+				if (!query) return resolve([]);
+				return resolve([{ name: query + '-1' }, { name: query + '-2' }]);
 
+			});
+		};
+
+		document.querySelector('typeahead-component').addEventListener('select-item', (item) => {
+			console.log('Tryout: Selected item %o', item.detail);
 		});
-	};
+
+
+
 	</script>
 
 </body>

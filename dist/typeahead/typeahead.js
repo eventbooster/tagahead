@@ -34,20 +34,44 @@
 		* Called when element is added to DOM. Setup <typeahead-input> and all its listeners.
 		*/
 		connectedCallback() {
+			
 			// Result list
 			this._resultList = document.createElement('typeahead-results');
+			
 			// Copy innerHTML to resultList
 			this._resultList.innerHTML = this.innerHTML;
 			this.innerHTML = '';
 			this.appendChild(this._resultList);
 			this._hideResults();
+			this._addResultListListeners(this._resultList);
 
 			// Input
-			const input = document.createElement('typeahead-input');
-			this._addInputEventListeners(input);
-			this.appendChild(input);
+			this._input = document.createElement('typeahead-input');
+			this._addInputEventListeners(this._input);
+			this.appendChild(this._input);
+
+			// Link input to result list's <selectable-list> so that we can use up and down
+			// arrows and enter to control the list
+			this._resultList.setInput(this._input);
 
 		}
+
+
+
+		/**
+		* Adds 'select-item' listener to result list, handles selection of a 
+		* result.
+		*/
+		_addResultListListeners(resultList) {
+
+			resultList.addEventListener('select-item', (ev) => {
+				const value = ev.target.textContent;
+				console.log('Typeahead: Value selected; is %o, update %o', value, this._input);
+				this._input.value = value;
+			});
+
+		}
+
 
 
 

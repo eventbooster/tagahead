@@ -1,17 +1,18 @@
 {
-  "name": "tagahead",
-  "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-  	"rollup-stream"			: "latest"
-  	, "gulp"				: "latest"
-  	, "vinyl-source-stream"	: "latest"
-  	, "merge-stream"		: "latest"
-  },
-  "author": "Felix Steiner",
-  "license": "MIT"
+	"name": "tagahead",
+	"version": "0.0.1",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"devDependencies": {
+		"rollup-stream"				: "latest"
+		, "gulp"					: "latest"
+		, "vinyl-source-stream"		: "latest"
+		, "merge-stream"			: "latest"
+		, "express"					: "latest"
+	},
+	"author": "Felix Steiner",
+	"license": "MIT"
 }

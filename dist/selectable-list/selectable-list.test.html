@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+	<script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+	<script src="../../bower_components/web-component-tester/browser.js"></script>
+	<link rel="import" href="../../dist/selectable-list/selectable-list.html">
+</head>
+<body>
+
+<test-fixture id="regular-list">
+	<template>
+		<div>
+			<div id="input"></div>
+			<selectable-list>
+				<selectable-div>1</selectable-div>
+				<selectable-div>2</selectable-div>
+				<selectable-div>3</selectable-div>
+			</selectable-list>
+		</div>
+	</template>
+</test-fixture>
+
+<script>
+
+/* global document, suite, test, customElements, assert, sinon, window, CustomEvent, setup, fixture */
+
+function dispatchEvent(element, type, mainData = {}) {
+	const evt = document.createEvent( 'CustomEvent' );
+	evt.initEvent( type, true, true);
+	Object.keys(mainData).forEach((key) => {
+		evt[key] = mainData[key];
+	});
+	element.dispatchEvent(evt);
+}
+
+/**
+* Mock for selectable-div
+*/
+class SelectableDiv extends HTMLElement{
+	highlight() {
+		this.classList.add('highlighted');
+	}
+	downplay() {
+		this.classList.remove('highlighted');
+	}
+	select() {
+		this.dispatchEvent(new CustomEvent('select-item', { bubbles: true }));
+	}
+}
+window.customElements.define('selectable-div', SelectableDiv);
+
+
+
+
+
+suite('selectable-list', () => {
+
+	let list;
+	setup(() => {
+		list = fixture('regular-list');
+		list.querySelector('selectable-list').addInput(list.querySelector('#input'));
+	});
+
+
+	test('is available in JS and HTML', () => {
+		assert.notEqual(window.SelectableList, undefined);
+		assert.notEqual(customElements.get('selectable-list'), undefined);
+	});
+
+
+
+	test('selects currently highlighted element', () => {
+		const events = [];
+		list.addEventListener('select-item', (ev) => {
+			events.push(ev);
+		});
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-down'));
+		list.querySelector('#input').dispatchEvent(new CustomEvent('confirm-selection'));
+		assert.equal(events.length, 1);
+		// Correct target
+		assert.equal(events[0].target, list.querySelector('selectable-div'));
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-down'));
+		list.querySelector('#input').dispatchEvent(new CustomEvent('confirm-selection'));
+		assert.equal(events.length, 2);
+	});
+
+
+	test('selects first element on nav-down', () => {
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-down'));
+		assert.equal(list.querySelector('selectable-div').classList.contains('highlighted'), true);
+	});
+
+	test('selects last element on nav-up', () => {
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-up'));
+		assert.equal(list.querySelector('selectable-div:last-child').classList.contains('highlighted'), true);
+	});
+
+	test('selects first element on nav-down on last', () => {
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-up'));
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-down'));
+		assert.equal(list.querySelector('selectable-div:first-child').classList.contains('highlighted'), true);
+		// Highlight is removed
+		assert.equal(list.querySelector('selectable-div:last-child').classList.contains('highlighted'), false);
+	});
+
+	test('selects last element on nav-up on first', () => {
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-down'));
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-up'));
+		assert.equal(list.querySelector('selectable-div:last-child').classList.contains('highlighted'), true);
+		// Highlight is removed
+		assert.equal(list.querySelector('selectable-div:first-child').classList.contains('highlighted'), false);
+	});
+
+	test('selects next and previous element', () => {
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-down'));
+		assert.equal(list.querySelector('selectable-div:first-child').classList.contains('highlighted'), true);
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-down'));
+		assert.equal(list.querySelector('selectable-div:nth-child(2)').classList.contains('highlighted'), true);
+		list.querySelector('#input').dispatchEvent(new CustomEvent('navigate-up'));
+		assert.equal(list.querySelector('selectable-div:first-child').classList.contains('highlighted'), true);
+	});
+
+
+
+
+	test('selects first element if attribute is set', () => {
+
+	});
+
+});
+
+
+
+
+
+</script>
+</body>
+</html>

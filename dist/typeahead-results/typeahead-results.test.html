@@ -10,7 +10,7 @@
 <test-fixture id="regular-results">
 	<template>
 		<typeahead-results>
-			<template id="result-template"><li>Name: [[name]]</li></template>
+			<template id="result-template">Name: [[name]]</template>
 			<template id="error-template">Error: [[message]]</template>
 			<template id="empty-result-set-template">Empty.</template>
 		</typeahead-input>
@@ -28,7 +28,7 @@
 
 <script>
 
-/* global document, window, customElements, suite, test, assert, setup, fixture */
+/* global document, window, customElements, suite, test, assert, setup, fixture, HTMLElement */
 
 function dispatchEvent(element, type, mainData = {}) {
 	const evt = document.createEvent( 'CustomEvent' );
@@ -40,6 +40,25 @@ function dispatchEvent(element, type, mainData = {}) {
 }
 
 
+/*
+* Define <selectable-list> stub
+*/
+class SelectableList extends HTMLElement {
+	constructor() {
+		super();
+		this._inputs = [];
+	}
+	addInput(input) {
+		this._inputs.push(input);
+	}
+	connectedCallback(){
+		
+	}
+}
+window.customElements.define('selectable-list', SelectableList);
+
+
+
 suite('rendering', () => {
 
 	let results;
@@ -47,9 +66,9 @@ suite('rendering', () => {
 		results = fixture('regular-results');
 	});
 
-	const dataHTML = '<selectable-list><ul class="typeahead-results-list"><li class="typeahead-results-list-item"></li><li>Name: a</li><li class="typeahead-results-list-item"></li><li>Name: b</li></ul></selectable-list>'
-		, emptyHTML = '<ul class="typeahead-results-list -empty"><li class="typeahead-results-list-item -empty">Empty.</li></ul>'
-		, errorHTML = '<ul class="typeahead-results-list -error"><li class="typeahead-results-list-item -error">Error: Something bad happened.</li></ul>';
+	const dataHTML = '<selectable-list class="typeahead-results-list"><selectable-list-item class="typeahead-results-list-item">Name: a</selectable-list-item><selectable-list-item class="typeahead-results-list-item">Name: b</selectable-list-item></selectable-list>'
+		, emptyHTML = '<ul class="typeahead-results-list empty"><li class="typeahead-results-list-item empty">Empty.</li></ul>'
+		, errorHTML = '<ul class="typeahead-results-list error"><li class="typeahead-results-list-item error">Error: Something bad happened.</li></ul>';
 
 
 	test('is available in JS and HTML', () => {
@@ -74,6 +93,7 @@ suite('rendering', () => {
 		assert.equal(results.innerHTML, errorHTML);
 	});
 
+
 	test('re-renders data when it is updated', () => {
 		// Empty
 		results.setData([]);
@@ -90,6 +110,71 @@ suite('rendering', () => {
 });
 
 
+
+
+/**
+* There's usually an input associated with a typeahead. Pass it to the selectableList.
+*/
+suite('input', () => {
+
+	let results;
+	setup(() => {
+		results = fixture('without-error');
+	});
+
+	test('adds input to selectable list if input is set', () => {
+
+		results.setInput(document.createElement('input'));
+		results.setData([{ name: 'a' }]);
+		const list = results.querySelector('selectable-list');
+		assert.equal(list._inputs.length, 1);
+
+	});
+
+});
+
+
+
+
+/**
+* Check if the correct events are fired
+*/
+suite('events', () => {
+
+
+	let results;
+	setup(() => {
+		results = fixture('regular-results');
+	});
+
+	test('emits corrent select-item event', (done) => {
+
+		const events = [];
+		results.addEventListener('select-item', (ev) => {
+			events.push(ev);
+		});
+
+		results.setData([{ name: 'a' }]);
+		const firstItem = results.querySelector('selectable-list-item');
+		dispatchEvent(firstItem, 'select-item');
+
+		setTimeout(() => {
+			// 2 events: One caught and stopped from <selectable-list>, the other
+			// created by <typeahead-results» itself.
+			assert.equal(events.length, 2);
+			assert.equal(events[0].detail.text, 'Name: a');
+			assert.deepEqual(events[0].detail.data, { name: 'a' });
+			done();
+		}, 100);
+
+	});
+
+});
+
+
+
+
+
 suite('errors', () => {
 
 	let results;
@@ -99,7 +184,7 @@ suite('errors', () => {
 
 	test('renders errors even if no template is set', () => {
 		results.setData(new Error('Something bad happened.'));
-		assert.equal(results.innerHTML, '<ul class="typeahead-results-list -error"><li class="typeahead-results-list-item -error">Something bad happened.</li></ul>');
+		assert.equal(results.innerHTML, '<ul class="typeahead-results-list error"><li class="typeahead-results-list-item error">Something bad happened.</li></ul>');
 	});
 
 });

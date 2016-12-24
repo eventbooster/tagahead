@@ -18,11 +18,11 @@
 
 		connectedCallback() {
 
-			const input = document.createElement('input');
-			input.setAttribute('size', 1);
-			this.appendChild(input);
-			this._addInputEventListener(input);
-			this._autogrowInput(input);
+			this._input = document.createElement('input');
+			this._input.setAttribute('size', 1);
+			this.appendChild(this._input);
+			this._addInputEventListener(this._input);
+			this._autogrowInput(this._input);
 
 		}
 
@@ -77,7 +77,7 @@
 		* Todo: Might be improved by cloning the element; size doens't work perfectly.
 		*/
 		_autogrowInput(input) {
-			input.addEventListener('keyup', () => {
+			input.addEventListener('input', () => {
 				input.setAttribute('size', input.value.length + 1);
 			});
 		}
@@ -89,6 +89,23 @@
 		*/
 		_handleInputValueChange(value) {
 			this.dispatchEvent(new CustomEvent('value-change', { detail: { value: value } }));
+		}
+
+
+		/**
+		* Map this.value to value of the HTMLInputElement this._input
+		*/
+		set value(value) {
+			console.log('TypeaheadInput: Update value of %o to %o', this._input, value);
+			this._input.value = value;
+		}
+
+
+		/**
+		* Return value of the HTMLINputElement's input value
+		*/
+		get value() {
+			return this._input.value;
 		}
 
 	}

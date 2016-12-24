@@ -123,13 +123,13 @@ suite('typeahead', () => {
 			, initialWidth = input.offsetWidth;
 
 		input.value = 'test';
-		dispatchEvent(input, 'keyup');
+		dispatchEvent(input, 'input');
 
 		// Grow
 		setTimeout(() => {
 			assert.equal(input.offsetWidth > initialWidth, true );
 			input.value = '';
-			dispatchEvent(input, 'keyup');
+			dispatchEvent(input, 'input');
 
 			// Shrink
 			setTimeout(() => {
@@ -138,6 +138,19 @@ suite('typeahead', () => {
 				done();
 			}, 10);
 		}, 10);
+
+	});
+
+
+
+	test('sets and gets value', () => {
+
+		const input = typeahead.querySelector('input');
+		typeahead.value = 'test';
+		// DOM is updated
+		assert.equal(input.value, 'test');
+		// Correct value is returned
+		assert.equal(typeahead.value, 'test');
 
 	});
 

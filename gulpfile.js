@@ -3,7 +3,7 @@ var gulp		= require('gulp')
 	, source	= require('vinyl-source-stream')
 	, path		= require('path')
 	, glob		= require('glob')
-	, merge	= require('merge-stream');
+	, merge		= require('merge-stream');
 
 
 
@@ -12,6 +12,7 @@ var gulp		= require('gulp')
 */ 
 gulp.task('rollup', () => {
 
+	// Why do we use glob.sync?
 	return merge(glob.sync('./src/*/**.js').map((entry) => {
 
 		return rollup({
@@ -23,10 +24,11 @@ gulp.task('rollup', () => {
 
 	}))
 	
-	// and output to ./dist/app.js as normal. 
+	// and output to ./dist/
 	.pipe(gulp.dest('./dist'));
 
 });
+
 
 /**
 * Watcher for rollup
@@ -43,7 +45,7 @@ gulp.task('watchRollup', () => {
 * Moves HTML files to dist folder
 */
 gulp.task('distHTML', () => {
-	gulp.src('src/*/**.html')
+	gulp.src('src/**/*.html')
 		.pipe(gulp.dest('dist'));
 });
 
@@ -52,9 +54,10 @@ gulp.task('distHTML', () => {
 * Watcher for distHTML
 */
 gulp.task('watchHTML', () => {
-	gulp.watch('src/*/**.html', ['distHTML']);
+	gulp.watch('src/**/*.html', ['distHTML']);
 });
 
 
 
 gulp.task('default', ['rollup', 'watchRollup', 'distHTML', 'watchHTML']);
+

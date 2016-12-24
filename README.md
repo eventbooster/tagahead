@@ -73,3 +73,12 @@ TBD.
 - Arrays/Objects/Values
 - undefined = '' – gracefully handled
 
+# Development
+
+## Server
+
+Use the dev server to test the component locally:
+
+    node dev-server.js
+
+Then access the files through your browser, e.g. `http://localhost:3000/dist/typeahead/typeahead.tryout.html`
