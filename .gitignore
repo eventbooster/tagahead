@@ -1,5 +1,3 @@
-/www/src/bower_components
-/www/src/jspm_packages
 
 #= module specific =#
 config.js
@@ -23,6 +21,7 @@ results
 
 npm-debug.log
 node_modules
+bower_components
 .npmignore
 
 #= travis =#
@@ -167,3 +166,4 @@ DocProject/Help/html
 *.dbmdl
 
 package.json
+
